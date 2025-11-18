@@ -111,23 +111,77 @@ async def create_manual_event_data(pr_number: str) -> str:
     import json
     import tempfile
     
+    # Parse repository information
+    repo_full = os.environ.get("GITHUB_REPOSITORY", "")
+    if "/" in repo_full:
+        repo_owner, repo_name = repo_full.split("/", 1)
+    else:
+        repo_owner = "unknown"
+        repo_name = "unknown"
+    
     # Create mock event data that mimics a comment trigger
     mock_event = {
         "issue": {
             "number": int(pr_number),
-            "pull_request": {}  # Just indicate it's a PR
+            "pull_request": {
+                "url": f"https://api.github.com/repos/{repo_full}/pulls/{pr_number}",
+                "html_url": f"https://github.com/{repo_full}/pull/{pr_number}",
+                "number": int(pr_number)
+            }
         },
         "comment": {
+            "id": 123456789,
             "body": "/gemini-review",
             "user": {
-                "login": "manual-trigger"
+                "login": "manual-trigger",
+                "id": 987654321
             }
         },
         "repository": {
-            "name": os.environ.get("GITHUB_REPOSITORY", "").split("/")[-1] if os.environ.get("GITHUB_REPOSITORY") else "unknown",
+            "id": 123456789,
+            "name": repo_name,
+            "full_name": repo_full,
             "owner": {
-                "login": os.environ.get("GITHUB_REPOSITORY", "").split("/")[0] if os.environ.get("GITHUB_REPOSITORY") else "unknown"
-            }
+                "login": repo_owner,
+                "id": 987654321
+            },
+            "private": False,
+            "html_url": f"https://github.com/{repo_full}",
+            "description": "Repository description",
+            "fork": False,
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+            "pushed_at": "2024-01-01T00:00:00Z",
+            "git_url": f"git://github.com/{repo_full}.git",
+            "ssh_url": f"git@github.com:{repo_full}.git",
+            "clone_url": f"https://github.com/{repo_full}.git",
+            "svn_url": f"https://github.com/{repo_full}",
+            "stargazers_count": 0,
+            "watchers_count": 0,
+            "language": "Python",
+            "has_issues": True,
+            "has_projects": True,
+            "has_wiki": True,
+            "has_pages": False,
+            "has_downloads": True,
+            "archived": False,
+            "disabled": False,
+            "open_issues_count": 0,
+            "forks": 0,
+            "open_issues": 0,
+            "watchers": 0,
+            "default_branch": "main"
+        },
+        "organization": {
+            "login": repo_owner,
+            "id": 987654321,
+            "avatar_url": "https://github.com/images/error/octocat_happy.gif",
+            "description": "Organization description"
+        },
+        "sender": {
+            "login": "manual-trigger",
+            "id": 987654321,
+            "avatar_url": "https://github.com/images/error/octocat_happy.gif"
         }
     }
     
