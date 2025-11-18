@@ -108,10 +108,12 @@ The enhanced code reviewer now provides **actual code recommendations** instead 
 ### 💡 코드 제안:
 
 **제안 1:** PreparedStatement를 사용하여 SQL 인젝션을 방지합니다.
-```suggestion
-query = "SELECT * FROM users WHERE id = ?";
-stmt = conn.prepareStatement(query);
-stmt.setString(1, userInput);
+```diff
+-query = "SELECT * FROM users WHERE id = " + userInput;
+---
++query = "SELECT * FROM users WHERE id = ?";
++stmt = conn.prepareStatement(query);
++stmt.setString(1, userInput);
 ```
 ```
 

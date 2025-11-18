@@ -131,18 +131,41 @@ class ReviewComment:
         """Convert to GitHub API format."""
         comment_body = self.body
         
-        # Add code suggestions to the comment body
+        # Add code suggestions to the comment body with diff format
         if self.code_suggestions:
             comment_body += "\n\n### 💡 코드 제안:\n"
             for i, suggestion in enumerate(self.code_suggestions, 1):
                 comment_body += f"\n**제안 {i}:** {suggestion.explanation}\n"
-                comment_body += f"```suggestion\n{suggestion.suggested_code}\n```\n"
+                comment_body += f"```diff\n"
+                comment_body += self._format_diff_suggestion(suggestion.original_code, suggestion.suggested_code)
+                comment_body += "```\n"
         
         return {
             "body": comment_body,
             "path": self.path,
             "position": self.position
         }
+    
+    def _format_diff_suggestion(self, original_code: str, suggested_code: str) -> str:
+        """Format code suggestion as a diff with better visual formatting."""
+        original_lines = original_code.strip().split('\n')
+        suggested_lines = suggested_code.strip().split('\n')
+        
+        diff_lines = []
+        
+        # Add original code with - prefix (red in GitHub)
+        for line in original_lines:
+            diff_lines.append(f"-{line}")
+        
+        # Add separator if both original and suggested exist
+        if original_lines and suggested_lines:
+            diff_lines.append("---")
+        
+        # Add suggested code with + prefix (green in GitHub)
+        for line in suggested_lines:
+            diff_lines.append(f"+{line}")
+        
+        return '\n'.join(diff_lines)
 
 
 @dataclass
