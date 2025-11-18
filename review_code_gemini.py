@@ -47,7 +47,7 @@ def setup_logging_from_config(config: Config):
 
 def validate_environment() -> bool:
     """Validate that all required environment variables are present."""
-    required_vars = ["GITHUB_TOKEN", "GEMINI_API_KEY", "GITHUB_EVENT_PATH"]
+    required_vars = ["GITHUB_TOKEN", "GEMINI_API_KEY"]
     missing_vars = []
     
     for var in required_vars:
@@ -58,11 +58,24 @@ def validate_environment() -> bool:
         print(f"오류: 필수 환경 변수 누락: {', '.join(missing_vars)}")
         return False
     
-    # Validate event name
-    event_name = os.environ.get("GITHUB_EVENT_NAME", "")
-    if event_name != "issue_comment":
-        print(f"오류: 지원되지 않는 GitHub 이벤트: {event_name}. 'issue_comment'만 지원됩니다.")
-        return False
+    # Check if this is a manual trigger
+    is_manual = os.environ.get("MANUAL_TRIGGER", "").lower() == "true"
+    
+    if is_manual:
+        # For manual trigger, validate PR number
+        if not os.environ.get("PR_NUMBER"):
+            print("오류: 수동 트리거 모드에서는 PR_NUMBER 환경 변수가 필요합니다.")
+            return False
+    else:
+        # For comment trigger, validate event path and name
+        if not os.environ.get("GITHUB_EVENT_PATH"):
+            print("오류: GITHUB_EVENT_PATH 환경 변수 누락")
+            return False
+        
+        event_name = os.environ.get("GITHUB_EVENT_NAME", "")
+        if event_name != "issue_comment":
+            print(f"오류: 지원되지 않는 GitHub 이벤트: {event_name}. 'issue_comment'만 지원됩니다.")
+            return False
     
     return True
 
@@ -93,6 +106,37 @@ def check_if_comment_trigger() -> bool:
         return False
 
 
+async def create_manual_event_data(pr_number: str) -> str:
+    """Create mock event data for manual trigger."""
+    import json
+    import tempfile
+    
+    # Create mock event data that mimics a comment trigger
+    mock_event = {
+        "issue": {
+            "number": int(pr_number),
+            "pull_request": {}  # Just indicate it's a PR
+        },
+        "comment": {
+            "body": "/gemini-review",
+            "user": {
+                "login": "manual-trigger"
+            }
+        },
+        "repository": {
+            "name": os.environ.get("GITHUB_REPOSITORY", "").split("/")[-1] if os.environ.get("GITHUB_REPOSITORY") else "unknown",
+            "owner": {
+                "login": os.environ.get("GITHUB_REPOSITORY", "").split("/")[0] if os.environ.get("GITHUB_REPOSITORY") else "unknown"
+            }
+        }
+    }
+    
+    # Write to temporary file
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+        json.dump(mock_event, f, indent=2)
+        return f.name
+
+
 async def main_async() -> int:
     """Main async function for the code review process."""
     print("🤖 Gemini AI 코드 리뷰어 시작 중...")
@@ -101,8 +145,11 @@ async def main_async() -> int:
     if not validate_environment():
         return 1
     
-    # Check if this is a valid trigger
-    if not check_if_comment_trigger():
+    # Check if this is a manual trigger
+    is_manual = os.environ.get("MANUAL_TRIGGER", "").lower() == "true"
+    
+    # For comment trigger, check if this is a valid trigger
+    if not is_manual and not check_if_comment_trigger():
         return 0  # Not an error, just not our trigger
     
     try:
@@ -113,7 +160,13 @@ async def main_async() -> int:
         setup_logging_from_config(config)
         logger = logging.getLogger(__name__)
         
-        logger.info("=== Gemini AI 코드 리뷰어 시작 ===")
+        if is_manual:
+            logger.info("=== Gemini AI 코드 리뷰어 시작 (수동 트리거) ===")
+            pr_number = os.environ["PR_NUMBER"]
+            logger.info(f"대상 PR: #{pr_number}")
+        else:
+            logger.info("=== Gemini AI 코드 리뷰어 시작 (댓글 트리거) ===")
+        
         logger.info(f"설정 로드됨: {config.to_dict()}")
         
         # Create code reviewer with configuration
@@ -130,8 +183,15 @@ async def main_async() -> int:
             
             logger.info("✅ 모든 외부 서비스 연결이 정상 작동합니다")
             
+            # Determine the event path for the review
+            if is_manual:
+                # For manual trigger, we need to create a mock event or use PR number directly
+                event_path = await create_manual_event_data(pr_number)
+            else:
+                event_path = os.environ["GITHUB_EVENT_PATH"]
+            
             # Perform the code review
-            result = await reviewer.review_pull_request(os.environ["GITHUB_EVENT_PATH"])
+            result = await reviewer.review_pull_request(event_path)
             
             # Log results
             await _log_review_results(result, reviewer)

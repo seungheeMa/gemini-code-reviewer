@@ -8,7 +8,9 @@ A GitHub Action that automatically reviews pull requests using Google's Gemini A
 ## Features
 
 - Review your PRs using Gemini API
-- Give use comments and suggestions to improve the source codes
+- Give comments and suggestions to improve the source codes
+- **Two trigger modes**: Comment trigger (`/gemini-review`) and manual button trigger
+- Flexible model selection and file exclusion patterns
 
 ![Demo](assets/img/Demo.png)
 ![Demo2](assets/img/Demo2.png)
@@ -69,7 +71,18 @@ jobs:
 ```
 > if you don't set `GEMINI_MODEL`, the default model is `gemini-2.5-flash`. `gemini-2.5-flash` is a next-generation model offering speed and multimodal generation capabilities.  It's suitable for a wide variety of tasks, including code generation, data extraction, and text editing.. For the detailed information about the models, please refer to [Gemini models](https://ai.google.dev/gemini-api/docs/models/gemini).
 4. Commit codes to your repository, and working on your pull requests.
-5. When you're ready to review the PR, you can trigger the workflow by commenting `/gemini-review` in the PR.
+5. When you're ready to review the PR, you can trigger the workflow in two ways:
+
+   **Option 1: Comment Trigger (Original Method)**
+   - Comment `/gemini-review` in the PR to trigger the review
+
+   **Option 2: Manual Button Trigger (New Feature)**
+   - Go to the **Actions** tab in your repository
+   - Select **Manual Gemini AI Code Reviewer** workflow
+   - Click **Run workflow** and enter the PR number and other options
+   - Click **Start workflow** to begin the review
+
+   For detailed instructions on the manual trigger, see [MANUAL_TRIGGER_GUIDE.md](MANUAL_TRIGGER_GUIDE.md).
 
 ## How It Works
 
