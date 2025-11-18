@@ -9,8 +9,11 @@ A GitHub Action that automatically reviews pull requests using Google's Gemini A
 
 - Review your PRs using Gemini API
 - Give comments and suggestions to improve the source codes
+- **🆕 Code Suggestions**: Not just comments, but actual code recommendations with before/after examples
 - **Two trigger modes**: Comment trigger (`/gemini-review`) and manual button trigger
 - Flexible model selection and file exclusion patterns
+- Support for multiple review modes (Standard, Strict, Lenient, Security-focused, Performance-focused)
+- GitHub-compatible comment formatting with code suggestion blocks
 
 ![Demo](assets/img/Demo.png)
 ![Demo2](assets/img/Demo2.png)
@@ -62,7 +65,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: truongnh1992/gemini-ai-code-reviewer@main
+      - uses: seungheeMa/gemini-code-reviewer@main
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -90,8 +93,58 @@ This GitHub Action uses the Gemini AI API to provide code review feedback. It wo
 
 1. **Analyzing the changes**: It grabs the code modifications from your pull request and filters out any files you don't want reviewed.
 2. **Consulting the Gemini model**: It sends chunks of the modified code to the Gemini for analysis.
-3. **Providing feedback**: Gemini AI examines the code and generates review comments.
-4. **Delivering the review**: The Action adds the comments directly to your pull request on GitHub.
+3. **Providing feedback**: Gemini AI examines the code and generates review comments **with actual code suggestions**.
+4. **Delivering the review**: The Action adds the comments directly to your pull request on GitHub with formatted code suggestion blocks.
+
+## 🆕 Code Suggestions Feature
+
+The enhanced code reviewer now provides **actual code recommendations** instead of just textual comments:
+
+### Example Output
+
+```markdown
+보안 취약점: 사용자 입력을 직접 SQL 쿼리에 사용하고 있습니다. SQL 인젝션 공격에 취약합니다.
+
+### 💡 코드 제안:
+
+**제안 1:** PreparedStatement를 사용하여 SQL 인젝션을 방지합니다.
+```suggestion
+query = "SELECT * FROM users WHERE id = ?";
+stmt = conn.prepareStatement(query);
+stmt.setString(1, userInput);
+```
+```
+
+### Features
+
+- **Before/After Code**: Shows exactly what to change and how
+- **Multiple Suggestions**: Can provide multiple alternative solutions
+- **Explanations**: Each suggestion includes detailed reasoning
+- **GitHub Compatible**: Uses GitHub's suggestion format for easy application
+- **Language Agnostic**: Works with any programming language
+
+### Configuration Options
+
+You can customize the review behavior using environment variables:
+
+```yaml
+- uses: seungheeMa/gemini-code-reviewer@main
+  with:
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    REVIEW_MODE: standard  # Options: standard, strict, lenient, security_focused, performance_focused
+    EXCLUDE: "*.md,*.txt,package-lock.json,*.yml,*.yaml"
+    MAX_FILES_PER_REVIEW: 50
+    MAX_LINES_PER_HUNK: 500
+```
+
+### Review Modes
+
+- **Standard**: Balanced review focusing on bugs, security, and performance
+- **Strict**: Thorough review including minor style issues
+- **Lenient**: Only critical bugs and security vulnerabilities
+- **Security-focused**: Exclusively security vulnerabilities
+- **Performance-focused**: Exclusively performance issues
 
 ## License
 
@@ -99,4 +152,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Star History ⭐️
 
-[![Star History Chart](https://api.star-history.com/svg?repos=truongnh1992/gemini-ai-code-reviewer&type=Date)](https://star-history.com/#truongnh1992/gemini-ai-code-reviewer&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=seungheeMa/gemini-code-reviewer&type=Date)](https://star-history.com/#seungheeMa/gemini-code-reviewer&Date)

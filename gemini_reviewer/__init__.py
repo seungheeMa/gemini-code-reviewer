@@ -6,7 +6,7 @@ This package provides modular components for automated code review in GitHub pul
 """
 
 __version__ = "2.0.0"
-__author__ = "truongnh1992"
+__author__ = "seungheeMa"
 __description__ = "AI-powered code review system using Google's Gemini AI"
 
 # Import main classes for easy access

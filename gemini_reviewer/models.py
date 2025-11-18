@@ -98,6 +98,24 @@ class DiffFile:
 
 
 @dataclass
+class CodeSuggestion:
+    """A code suggestion with before/after states."""
+    original_code: str
+    suggested_code: str
+    explanation: str
+    line_start: int
+    line_end: int
+    
+    def to_github_suggestion(self) -> Dict[str, Any]:
+        """Convert to GitHub suggestion format."""
+        return {
+            "original_code": self.original_code,
+            "suggested_code": self.suggested_code,
+            "explanation": self.explanation
+        }
+
+
+@dataclass
 class ReviewComment:
     """A code review comment."""
     body: str
@@ -107,11 +125,21 @@ class ReviewComment:
     priority: ReviewPriority = ReviewPriority.MEDIUM
     category: Optional[str] = None
     suggestion: Optional[str] = None
+    code_suggestions: List[CodeSuggestion] = field(default_factory=list)
     
     def to_github_comment(self) -> Dict[str, Any]:
         """Convert to GitHub API format."""
+        comment_body = self.body
+        
+        # Add code suggestions to the comment body
+        if self.code_suggestions:
+            comment_body += "\n\n### 💡 코드 제안:\n"
+            for i, suggestion in enumerate(self.code_suggestions, 1):
+                comment_body += f"\n**제안 {i}:** {suggestion.explanation}\n"
+                comment_body += f"```suggestion\n{suggestion.suggested_code}\n```\n"
+        
         return {
-            "body": self.body,
+            "body": comment_body,
             "path": self.path,
             "position": self.position
         }
@@ -125,6 +153,7 @@ class AIResponse:
     priority: ReviewPriority = ReviewPriority.MEDIUM
     category: Optional[str] = None
     confidence: Optional[float] = None
+    code_suggestions: List[CodeSuggestion] = field(default_factory=list)
 
 
 @dataclass
