@@ -22,10 +22,9 @@ Gemini AI Code Reviewer는 이제 두 가지 방법으로 실행할 수 있습�
 2. 다음 파라미터들을 입력합니다:
 
    - **Pull Request number**: 리뷰할 Pull Request 번호 (필수)
-   - **Gemini model**: 사용할 Gemini 모델 선택 (선택사항, 기본값: gemini-2.5-flash)
-     - `gemini-2.5-flash` (기본값)
-     - `gemini-1.5-pro`
-     - `gemini-1.5-flash`
+   - **Gemini model**: 사용할 Gemini 모델 선택 (선택사항, 기본값: gemini-3-flash-preview)
+     - `gemini-3-flash-preview` (기본값)
+     - `gemini-3-pro-preview` (기본값)
    - **Exclude patterns**: 제외할 파일 패턴 (선택사항, 쉼표로 구분)
 
 3. **Start workflow** 버튼을 클릭하여 실행을 시작합니다
@@ -44,7 +43,7 @@ Gemini AI Code Reviewer는 이제 두 가지 방법으로 실행할 수 있습�
 
 ```
 Pull Request number: 42
-Gemini model: gemini-2.5-flash
+Gemini model: gemini-3-flash-preview
 Exclude patterns: (비워둠)
 ```
 

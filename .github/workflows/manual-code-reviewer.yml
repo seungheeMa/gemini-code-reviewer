@@ -10,12 +10,11 @@ on:
       gemini_model:
         description: 'Gemini model to use'
         required: false
-        default: 'gemini-2.5-flash'
+        default: 'gemini-3-flash-preview'
         type: choice
         options:
-          - 'gemini-2.5-flash'
-          - 'gemini-1.5-pro'
-          - 'gemini-1.5-flash'
+          - 'gemini-3-flash-preview'
+          - 'gemini-3-pro-preview'
       exclude_patterns:
         description: 'Comma-separated file patterns to exclude'
         required: false

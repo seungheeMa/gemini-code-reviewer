@@ -10,10 +10,10 @@ on:
         required: false
         type: string
       gemini_model:
-        description: 'Gemini model to use (default: gemini-2.5-flash)'
+        description: 'Gemini model to use (default: gemini-3-flash-preview)'
         required: false
         type: string
-        default: 'gemini-2.5-flash'
+        default: 'gemini-3-flash-preview'
 
 permissions: write-all
 
@@ -76,7 +76,7 @@ jobs:
           if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
             MODEL="${{ github.event.inputs.gemini_model }}"
           else
-            MODEL="gemini-2.5-flash"
+            MODEL="gemini-3-flash-preview"
           fi
           echo "model=$MODEL" >> $GITHUB_OUTPUT
 
