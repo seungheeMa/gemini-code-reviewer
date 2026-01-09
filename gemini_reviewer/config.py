@@ -65,7 +65,7 @@ class GitHubConfig:
 class GeminiConfig:
     """Configuration for Gemini AI integration."""
     api_key: str
-    model_name: str = "gemini-2.5-flash"
+    model_name: str = "gemini-3-flash-preview"
     max_output_tokens: int = 8192
     temperature: float = 0.8
     top_p: float = 0.95
@@ -191,7 +191,7 @@ class Config:
         # Gemini configuration  
         gemini_config = GeminiConfig(
             api_key=gemini_api_key,
-            model_name=os.environ.get("GEMINI_MODEL", "gemini-2.5-flash"),
+            model_name=os.environ.get("GEMINI_MODEL", "gemini-3-flash-preview"),
             temperature=float(os.environ.get("GEMINI_TEMPERATURE", "0.8")),
             top_p=float(os.environ.get("GEMINI_TOP_P", "0.95")),
             max_output_tokens=int(os.environ.get("GEMINI_MAX_TOKENS", "8192"))
@@ -254,37 +254,44 @@ class Config:
             return self.review.custom_prompt_template
         
         base_prompt = """Your task is reviewing pull requests. Instructions:
-- Provide the response in following JSON format: {{"reviews": [{{"lineNumber": <line_number>, "reviewComment": "<review comment>"}}]}}
+- Provide the response in following JSON format: {{"reviews": [{{"lineNumber": <line_number>, "reviewComment": "<review comment>", "codeSuggestions": [{{"originalCode": "<original code>", "suggestedCode": "<suggested code>", "explanation": "<explanation>", "lineStart": <start_line>, "lineEnd": <end_line>}}]}}]}}
 - Provide comments and suggestions ONLY if there is something to improve, otherwise "reviews" should be an empty array.
 - Use GitHub Markdown in comments
 - IMPORTANT: NEVER suggest adding comments to the code
-- IMPORTANT: Please provide your review comments in Korean (한국어)"""
+- IMPORTANT: Please provide your review comments in Korean (한국어)
+- IMPORTANT: When suggesting code changes, provide concrete, executable code examples that can be directly applied
+- IMPORTANT: Include codeSuggestions array with actual before/after code when you have specific improvement suggestions"""
         
         mode_specific_instructions = {
             ReviewMode.STRICT: """
 - Focus on ALL potential issues including minor style problems
 - Be very thorough and pedantic
-- Flag any deviation from best practices""",
+- Flag any deviation from best practices
+- Provide specific code suggestions for any issues found""",
             
             ReviewMode.STANDARD: """
 - Focus on bugs, security issues, and performance problems
 - Include maintainability concerns
-- Skip minor style issues unless they impact readability""",
+- Skip minor style issues unless they impact readability
+- Provide concrete code suggestions for critical issues""",
             
             ReviewMode.LENIENT: """
 - Focus ONLY on critical bugs and security vulnerabilities
 - Skip style and minor maintainability issues
-- Be concise in feedback""",
+- Be concise in feedback
+- Provide code suggestions only for critical issues""",
             
             ReviewMode.SECURITY_FOCUSED: """
 - Focus EXCLUSIVELY on security vulnerabilities
 - Look for injection attacks, authentication issues, data exposure
-- Flag any security anti-patterns""",
+- Flag any security anti-patterns
+- Provide secure code alternatives for any security issues found""",
             
             ReviewMode.PERFORMANCE_FOCUSED: """
 - Focus EXCLUSIVELY on performance issues
 - Look for inefficient algorithms, memory leaks, unnecessary operations
-- Flag performance anti-patterns"""
+- Flag performance anti-patterns
+- Provide optimized code alternatives for performance issues"""
         }
         
         focus_instruction = mode_specific_instructions.get(self.review.review_mode, "")

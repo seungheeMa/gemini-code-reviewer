@@ -273,16 +273,74 @@ class GeminiClient:
             category = review.get("category")
             confidence = self._parse_confidence(review.get("confidence"))
             
+            # Parse code suggestions
+            code_suggestions = []
+            suggestions_data = review.get("codeSuggestions", [])
+            if suggestions_data and isinstance(suggestions_data, list):
+                for suggestion_data in suggestions_data:
+                    suggestion = self._parse_code_suggestion(suggestion_data)
+                    if suggestion:
+                        code_suggestions.append(suggestion)
+            
             return AIResponse(
                 line_number=line_number,
                 review_comment=comment,
                 priority=priority,
                 category=category,
-                confidence=confidence
+                confidence=confidence,
+                code_suggestions=code_suggestions
             )
             
         except Exception as e:
             logger.warning(f"Error parsing single review: {str(e)}")
+            return None
+    
+    def _parse_code_suggestion(self, suggestion_data: Dict[str, Any]) -> Optional['CodeSuggestion']:
+        """Parse a code suggestion from the AI response."""
+        try:
+            from .models import CodeSuggestion
+            
+            if not isinstance(suggestion_data, dict):
+                logger.warning(f"Invalid code suggestion format: {type(suggestion_data)}")
+                return None
+            
+            # Validate required fields
+            required_fields = ["originalCode", "suggestedCode", "explanation", "lineStart", "lineEnd"]
+            for field in required_fields:
+                if field not in suggestion_data:
+                    logger.warning(f"Code suggestion missing required field '{field}': {suggestion_data}")
+                    return None
+            
+            original_code = str(suggestion_data["originalCode"]).strip()
+            suggested_code = str(suggestion_data["suggestedCode"]).strip()
+            explanation = str(suggestion_data["explanation"]).strip()
+            
+            if not original_code or not suggested_code or not explanation:
+                logger.warning("Code suggestion has empty required fields")
+                return None
+            
+            try:
+                line_start = int(suggestion_data["lineStart"])
+                line_end = int(suggestion_data["lineEnd"])
+                
+                if line_start <= 0 or line_end <= 0 or line_start > line_end:
+                    logger.warning(f"Invalid line numbers: start={line_start}, end={line_end}")
+                    return None
+                    
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid line number format in code suggestion")
+                return None
+            
+            return CodeSuggestion(
+                original_code=original_code,
+                suggested_code=suggested_code,
+                explanation=explanation,
+                line_start=line_start,
+                line_end=line_end
+            )
+            
+        except Exception as e:
+            logger.warning(f"Error parsing code suggestion: {str(e)}")
             return None
     
     def _clean_response_text(self, response_text: str) -> str:

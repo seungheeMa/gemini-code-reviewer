@@ -98,6 +98,24 @@ class DiffFile:
 
 
 @dataclass
+class CodeSuggestion:
+    """A code suggestion with before/after states."""
+    original_code: str
+    suggested_code: str
+    explanation: str
+    line_start: int
+    line_end: int
+    
+    def to_github_suggestion(self) -> Dict[str, Any]:
+        """Convert to GitHub suggestion format."""
+        return {
+            "original_code": self.original_code,
+            "suggested_code": self.suggested_code,
+            "explanation": self.explanation
+        }
+
+
+@dataclass
 class ReviewComment:
     """A code review comment."""
     body: str
@@ -107,14 +125,47 @@ class ReviewComment:
     priority: ReviewPriority = ReviewPriority.MEDIUM
     category: Optional[str] = None
     suggestion: Optional[str] = None
+    code_suggestions: List[CodeSuggestion] = field(default_factory=list)
     
     def to_github_comment(self) -> Dict[str, Any]:
         """Convert to GitHub API format."""
+        comment_body = self.body
+        
+        # Add code suggestions to the comment body with diff format
+        if self.code_suggestions:
+            comment_body += "\n\n### 💡 코드 제안:\n"
+            for i, suggestion in enumerate(self.code_suggestions, 1):
+                comment_body += f"\n**제안 {i}:** {suggestion.explanation}\n"
+                comment_body += f"```diff\n"
+                comment_body += self._format_diff_suggestion(suggestion.original_code, suggestion.suggested_code)
+                comment_body += "```\n"
+        
         return {
-            "body": self.body,
+            "body": comment_body,
             "path": self.path,
             "position": self.position
         }
+    
+    def _format_diff_suggestion(self, original_code: str, suggested_code: str) -> str:
+        """Format code suggestion as a diff with better visual formatting."""
+        original_lines = original_code.strip().split('\n')
+        suggested_lines = suggested_code.strip().split('\n')
+        
+        diff_lines = []
+        
+        # Add original code with - prefix (red in GitHub)
+        for line in original_lines:
+            diff_lines.append(f"-{line}")
+        
+        # Add separator if both original and suggested exist
+        if original_lines and suggested_lines:
+            diff_lines.append("---")
+        
+        # Add suggested code with + prefix (green in GitHub)
+        for line in suggested_lines:
+            diff_lines.append(f"+{line}")
+        
+        return '\n'.join(diff_lines)
 
 
 @dataclass
@@ -125,6 +176,7 @@ class AIResponse:
     priority: ReviewPriority = ReviewPriority.MEDIUM
     category: Optional[str] = None
     confidence: Optional[float] = None
+    code_suggestions: List[CodeSuggestion] = field(default_factory=list)
 
 
 @dataclass

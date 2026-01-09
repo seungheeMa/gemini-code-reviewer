@@ -308,9 +308,11 @@ class CodeReviewer:
                 position=position,
                 line_number=ai_response.line_number,
                 priority=ai_response.priority,
-                category=ai_response.category
+                category=ai_response.category,
+                code_suggestions=ai_response.code_suggestions
             )
             
+            logger.debug(f"Created comment with {len(ai_response.code_suggestions)} code suggestions")
             return comment
             
         except Exception as e:

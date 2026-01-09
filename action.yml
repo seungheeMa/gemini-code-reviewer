@@ -1,6 +1,6 @@
 name: "Gemini AI Code Reviewer"
 description: "This GitHub Action automatically reviews PRs using Google's Gemini AI model."
-author: 'truongnh1992'
+author: 'seungheeMa'
 branding:
   icon: 'zoom-in'
   color: 'blue'
@@ -15,9 +15,17 @@ inputs:
   GEMINI_MODEL:
     description: 'The Gemini model to use for code review'
     required: false
-    default: 'gemini-2.5-flash'
+    default: 'gemini-3-flash-preview'
   EXCLUDE:
     description: 'Comma-separated list of file patterns to exclude'
+    required: false
+    default: ''
+  MANUAL_TRIGGER:
+    description: 'Set to true for manual trigger mode'
+    required: false
+    default: 'false'
+  PR_NUMBER:
+    description: 'Pull Request number (for manual trigger)'
     required: false
     default: ''
 runs:
@@ -27,7 +35,7 @@ runs:
 
     - uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: '3.11'
 
     - name: Install dependencies
       shell: bash
@@ -42,4 +50,6 @@ runs:
         GEMINI_API_KEY: ${{ inputs.GEMINI_API_KEY }}
         GEMINI_MODEL: ${{ inputs.GEMINI_MODEL }}
         EXCLUDE: ${{ inputs.EXCLUDE }}
+        MANUAL_TRIGGER: ${{ inputs.MANUAL_TRIGGER }}
+        PR_NUMBER: ${{ inputs.PR_NUMBER }}
       run: python ${{ github.action_path }}/review_code_gemini.py

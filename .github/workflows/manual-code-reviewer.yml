@@ -1,0 +1,58 @@
+name: Manual Gemini AI Code Reviewer
+
+on:
+  workflow_dispatch:
+    inputs:
+      pull_request_number:
+        description: 'Pull Request number to review'
+        required: true
+        type: number
+      gemini_model:
+        description: 'Gemini model to use'
+        required: false
+        default: 'gemini-3-flash-preview'
+        type: choice
+        options:
+          - 'gemini-3-flash-preview'
+          - 'gemini-3-pro-preview'
+      exclude_patterns:
+        description: 'Comma-separated file patterns to exclude'
+        required: false
+        default: ''
+        type: string
+
+permissions: write-all
+
+jobs:
+  gemini-code-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run Gemini AI Code Reviewer
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ inputs.gemini_model }}
+          EXCLUDE: ${{ inputs.exclude_patterns }}
+          PR_NUMBER: ${{ inputs.pull_request_number }}
+          MANUAL_TRIGGER: "true"
+        run: |
+          echo "=== 워크플로우 환경 변수 확인 ==="
+          echo "MANUAL_TRIGGER: $MANUAL_TRIGGER"  
+          echo "PR_NUMBER: $PR_NUMBER"
+          echo "GITHUB_EVENT_NAME: $GITHUB_EVENT_NAME"
+          echo "=========================="
+          python3.11 review_code_gemini.py

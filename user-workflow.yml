@@ -1,0 +1,101 @@
+name: Gemini AI Code Reviewer
+
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'Pull Request number to review (leave empty to use latest PR)'
+        required: false
+        type: string
+      gemini_model:
+        description: 'Gemini model to use (default: gemini-3-flash-preview)'
+        required: false
+        type: string
+        default: 'gemini-3-flash-preview'
+
+permissions: write-all
+
+jobs:
+  gemini-code-review:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/gemini-review')) ||
+      github.event_name == 'workflow_dispatch'
+    steps:
+      - name: PR Info
+        run: |
+          if [ "${{ github.event_name }}" == "issue_comment" ]; then
+            echo "Trigger: Comment"
+            echo "Comment: ${{ github.event.comment.body }}"
+            echo "Issue Number: ${{ github.event.issue.number }}"
+            echo "PR Number: ${{ github.event.issue.number }}"
+          else
+            echo "Trigger: Manual"
+            echo "PR Number: ${{ github.event.inputs.pr_number }}"
+            echo "Gemini Model: ${{ github.event.inputs.gemini_model }}"
+          fi
+          echo "Repository: ${{ github.repository }}"
+
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get PR Number
+        id: pr_number
+        run: |
+          if [ "${{ github.event_name }}" == "issue_comment" ]; then
+            PR_NUMBER="${{ github.event.issue.number }}"
+          else
+            PR_NUMBER="${{ github.event.inputs.pr_number }}"
+            # If PR number is not provided, get the latest PR
+            if [ -z "$PR_NUMBER" ]; then
+              echo "No PR number provided, getting latest PR..."
+              PR_NUMBER=$(gh api repos/${{ github.repository }}/pulls --jq '.[0].number')
+              echo "Found latest PR: $PR_NUMBER"
+            fi
+          fi
+          echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get PR Details
+        id: pr
+        run: |
+          PR_JSON=$(gh api repos/${{ github.repository }}/pulls/${{ steps.pr_number.outputs.pr_number }})
+          echo "head_sha=$(echo $PR_JSON | jq -r .head.sha)" >> $GITHUB_OUTPUT
+          echo "base_sha=$(echo $PR_JSON | jq -r .base.sha)" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set Gemini Model
+        id: model
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            MODEL="${{ github.event.inputs.gemini_model }}"
+          else
+            MODEL="gemini-3-flash-preview"
+          fi
+          echo "model=$MODEL" >> $GITHUB_OUTPUT
+
+      - name: Set Trigger Mode
+        id: trigger
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "manual=true" >> $GITHUB_OUTPUT
+            echo "pr_number=${{ steps.pr_number.outputs.pr_number }}" >> $GITHUB_OUTPUT
+          else
+            echo "manual=false" >> $GITHUB_OUTPUT
+            echo "pr_number=" >> $GITHUB_OUTPUT
+          fi
+
+      - uses: seungheeMa/gemini-code-reviewer@main
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.MA_GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ steps.model.outputs.model }}
+          EXCLUDE: "*.md,*.txt,package-lock.json,*.yml,*.yaml"
+          MANUAL_TRIGGER: ${{ steps.trigger.outputs.manual }}
+          PR_NUMBER: ${{ steps.trigger.outputs.pr_number }}
